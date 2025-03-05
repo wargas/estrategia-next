@@ -1,5 +1,4 @@
 "use client"
-import Api from "@/lib/api"
 import { CollapsibleTrigger } from "@radix-ui/react-collapsible"
 import { useQuery } from "@tanstack/react-query"
 import { FileText, Loader2Icon, MessageSquareText, Play } from "lucide-react"
@@ -11,6 +10,7 @@ import { Label } from "./ui/label"
 import { ScrollArea } from "./ui/scroll-area"
 import { Switch } from "./ui/switch"
 
+import { ApiClient } from "@/lib/api_client"
 import { cn } from "@/lib/utils"
 import { useWindowSize } from 'usehooks-ts'
 
@@ -30,7 +30,7 @@ export function AulaDetalhe({ aula }: Props) {
     const { data, isLoading } = useQuery({
         queryKey: [`aula`, aula.id],
         queryFn: async () => {
-            const { data } = await Api.get<AulaResponse>(`aluno/aula/${aula.id}`)
+            const { data } = await ApiClient.get<AulaResponse>(`aluno/aula/${aula.id}`)
 
             if (!currentVideo && data.data?.videos) {
                 setCurrentVideo(data.data.videos[0])
