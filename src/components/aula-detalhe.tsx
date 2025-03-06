@@ -1,7 +1,7 @@
 "use client"
 import { CollapsibleTrigger } from "@radix-ui/react-collapsible"
-import { useQuery } from "@tanstack/react-query"
-import { FileText, Loader2Icon, MessageSquareText, Play } from "lucide-react"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { Check, FileText, Loader2Icon, MessageSquareText, Play } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
@@ -25,9 +25,7 @@ export function AulaDetalhe({ aula }: Props) {
 
     const windowsSize = useWindowSize({ initializeWithValue: true })
 
-    // const { width, height = 320 } = useResizeObserver({ ref: videoRef, box: 'border-box', onResize: console.log })
-
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, refetch } = useQuery({
         queryKey: [`aula`, aula.id],
         queryFn: async () => {
             const { data } = await ApiClient.get<AulaResponse>(`aluno/aula/${aula.id}`)
@@ -39,6 +37,25 @@ export function AulaDetalhe({ aula }: Props) {
             return data;
         },
         enabled: open
+    })
+
+    const mutation = useMutation({
+        mutationFn: async(to: boolean) => {
+            if(!currentVideo) {
+                return;
+            }
+            
+            setCurrentVideo({...currentVideo, visualizado: to})
+                
+            const response = await ApiClient.put(`aluno/aula/${data?.data.id}/video/${currentVideo.id}/visualizar`, {
+                'visualizado': to
+            })
+
+            refetch()
+
+            return response;
+
+        }
     })
 
     useEffect(() => {
@@ -86,11 +103,22 @@ export function AulaDetalhe({ aula }: Props) {
                                     <div className="flex gap-4">
                                         <div className="w-[60%] xl:w-[75%]">
                                             <video
+                                                onEnded={() => mutation.mutate(true)}
                                                 ref={videoRef}
                                                 onResize={ev => setHeight(ev.currentTarget.clientHeight)}
                                                 className="w-full rounded-lg"
                                                 autoPlay={false} controls src={currentVideo?.resolucoes["720p"]}
                                                 poster={currentVideo?.thumbnail}></video>
+                                            <div className="flex justify-end mt-4">
+
+                                                <Label className="flex gap-2 items-center">
+                                                    <span>
+
+                                                        Assistido
+                                                    </span>
+                                                    <Switch onCheckedChange={() => mutation.mutate(!currentVideo?.visualizado)} checked={currentVideo?.visualizado} />
+                                                </Label>
+                                            </div>
                                         </div>
 
                                         <ScrollArea className="w-[40%] xl:w-[25%]" style={{ height: `${height}px` }}>
@@ -99,10 +127,15 @@ export function AulaDetalhe({ aula }: Props) {
                                                 {data.data.videos.map((video, i) => (
                                                     <div key={video.id} onClick={() => setCurrentVideo(video)}
                                                         className={cn("cursor-pointer border rounded text-sm p-2 flex gap-2 items-center transition-all", { 'bg-blue-600 border-blue-700': video.id == currentVideo?.id })}>
-                                                        <Play color="#ccc" />
+                                                        {video.visualizado ? (
+                                                            <Check color="green" />
+                                                        ) : (
+                                                            <Play color="#ccc" />
+                                                        )}
                                                         <div className="text-neutral-600">
-                                                            <span className="text-neutral-300">video {i + 1}</span> <br />
-                                                            <span className={cn({'text-white': video.id == currentVideo?.id })}> {video.titulo}</span>
+                                                            <span className={cn({"text-neutral-300": !video.visualizado, 'text-green-600': video.visualizado})}>video {i + 1}</span> <br />
+                                                            <span className={cn({ 'text-white': video.id == currentVideo?.id })}> {video.titulo}</span>
+
                                                         </div>
                                                     </div>
                                                 ))}
